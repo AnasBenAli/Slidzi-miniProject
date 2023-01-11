@@ -1,1 +1,1 @@
-# Slidzi-miniProject
+# Slidzo-miniProject
