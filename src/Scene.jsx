@@ -9,6 +9,7 @@ import { Canvas } from "@react-three/fiber";
 import { SheetProvider } from "@theatre/r3f";
 import CannonDebugger from "cannon-es-debugger";
 import CarBody from "./Car";
+import Fuel from "./Fuel";
 
 studio.initialize();
 studio.extend(extension);
@@ -123,7 +124,7 @@ carTransform.onValuesChange((values) => {
     );
     force = values.speed;
 
-    boxBody.removeShape(boxBody.shapes[0]);
+    /*boxBody.removeShape(boxBody.shapes[0]);
     boxBody.addShape(
       new CANNON.Box(
         new CANNON.Vec3(
@@ -133,7 +134,7 @@ carTransform.onValuesChange((values) => {
         )
       )
     );
-    boxBody.updateBoundingRadius();
+    boxBody.updateBoundingRadius();*/
   }
 });
 craneCam.onValuesChange((values) => {
@@ -151,10 +152,29 @@ const boxBody = new CANNON.Body({
 });
 
 const vehicle = new CarBody(boxBody).vehicle;
-addEventListener("click", () => {
-  console.log(camera.quaternion);
-  console.log(boxBody.quaternion);
-});
+var fuelTrails = [];
+function generateFuelCluster(amount) {
+  fuelTrails = [];
+  for (var i = 0; i < amount; i++) {
+    var fuelTrail = new Fuel({
+      camera: camera,
+      scene: scene,
+      renderer: renderer,
+    });
+    fuelTrail.mesh.position.set(
+      Math.random() * 100 - 50,
+      3,
+      Math.random() * 100 - 50
+    );
+    scene.add(fuelTrail.mesh);
+    fuelTrails.push(fuelTrail);
+  }
+}
+function animateFuel() {
+  fuelTrails.forEach((fuelTrail) => {
+    fuelTrail.animate();
+  });
+}
 class Scene extends React.Component {
   CreateScene() {
     function init() {
@@ -183,9 +203,16 @@ class Scene extends React.Component {
       light.position.set(1, 1, 1); //default; light shining from top
       light.castShadow = true; // default false
       scene.add(light);
+      camera.quaternion.set(
+        boxBody.quaternion.x,
+        boxBody.quaternion.y,
+        boxBody.quaternion.z,
+        boxBody.quaternion.w
+      );
+      generateFuelCluster(20);
     }
-
     function Update() {
+      animateFuel();
       if (car) {
         car.scene.position.set(
           boxBody.position.x + carTransform.value.colliderOffset.x,
@@ -200,19 +227,13 @@ class Scene extends React.Component {
         );
         camera.position.set(
           boxBody.position.x + carTransform.value.colliderOffset.x,
-          boxBody.position.y + carTransform.value.colliderOffset.y +5,
-          boxBody.position.z + carTransform.value.colliderOffset.z
-        );
-        camera.quaternion.set(
-          -boxBody.quaternion.x,
-          -boxBody.quaternion.y,
-         -boxBody.quaternion.z,
-          boxBody.quaternion.w
+          boxBody.position.y + carTransform.value.colliderOffset.y + 8,
+          boxBody.position.z + carTransform.value.colliderOffset.z - 20
         );
       }
       physicsWorld.fixedStep();
       requestAnimationFrame(Update);
-      cannonDebugger.update();
+      //cannonDebugger.update();
       renderer.render(scene, camera);
     }
     init();
@@ -223,6 +244,7 @@ class Scene extends React.Component {
     return (
       <Canvas>
         <SheetProvider sheet={sheet}>{this.CreateScene()}</SheetProvider>
+        <Fuel />
       </Canvas>
     );
   }
