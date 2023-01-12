@@ -8,6 +8,7 @@ import extension from "@theatre/r3f/dist/extension";
 import { Canvas } from "@react-three/fiber";
 import { SheetProvider } from "@theatre/r3f";
 import CannonDebugger from "cannon-es-debugger";
+import CarBody from "./Car";
 
 studio.initialize();
 studio.extend(extension);
@@ -72,7 +73,7 @@ var force = 10;
 document.addEventListener("keydown", (event) => {
   if (car) {
     const keyName = event.key;
-    
+
     const steering = Math.PI / 8;
     if (keyName === "w") {
       vehicle.setWheelForce(force, 0);
@@ -149,55 +150,11 @@ const boxBody = new CANNON.Body({
   shape: new CANNON.Box(new CANNON.Vec3(2.5, 1.5, 6.2)),
 });
 
-const vehicle = new CANNON.RigidVehicle({
-  chassisBody: boxBody,
+const vehicle = new CarBody(boxBody).vehicle;
+addEventListener("click", () => {
+  console.log(camera.quaternion);
+  console.log(boxBody.quaternion);
 });
-
-const wheelShape = new CANNON.Sphere(0.75);
-const wheelMaterial = new CANNON.Material("wheel");
-const axisWidth = 5;
-const dowmDir = new CANNON.Vec3(0, -1, 0);
-const mass = 1;
-const wheelsHeight = -0.8;
-const axis = new CANNON.Vec3(1, 0, 0);
-const wheelBody = new CANNON.Body({ mass, material: wheelMaterial });
-wheelBody.addShape(wheelShape);
-wheelBody.angularDamping = 0.1;
-vehicle.addWheel({
-  body: wheelBody,
-  position: new CANNON.Vec3(3.5, wheelsHeight, 1.5 + axisWidth / 2),
-  axis: axis,
-  direction: dowmDir,
-});
-const wheelBody2 = new CANNON.Body({ mass, material: wheelMaterial });
-wheelBody2.addShape(wheelShape);
-wheelBody2.angularDamping = 0.1;
-vehicle.addWheel({
-  body: wheelBody2,
-  position: new CANNON.Vec3(-3.5, wheelsHeight, -1.5 - axisWidth / 2),
-  axis: axis,
-  direction: dowmDir,
-});
-
-const wheelBody3 = new CANNON.Body({ mass, material: wheelMaterial });
-wheelBody3.addShape(wheelShape);
-wheelBody3.angularDamping = 0.1;
-vehicle.addWheel({
-  body: wheelBody3,
-  position: new CANNON.Vec3(-3.5, wheelsHeight, 1.5 + axisWidth / 2),
-  axis: axis,
-  direction: dowmDir,
-});
-const wheelBody4 = new CANNON.Body({ mass, material: wheelMaterial });
-wheelBody4.addShape(wheelShape);
-wheelBody4.angularDamping = 0.1;
-vehicle.addWheel({
-  body: wheelBody4,
-  position: new CANNON.Vec3(3.5, wheelsHeight, -1.5 - axisWidth / 2),
-  axis: axis,
-  direction: dowmDir,
-});
-
 class Scene extends React.Component {
   CreateScene() {
     function init() {
@@ -241,10 +198,21 @@ class Scene extends React.Component {
           boxBody.quaternion.z,
           boxBody.quaternion.w
         );
+        camera.position.set(
+          boxBody.position.x + carTransform.value.colliderOffset.x,
+          boxBody.position.y + carTransform.value.colliderOffset.y +5,
+          boxBody.position.z + carTransform.value.colliderOffset.z
+        );
+        camera.quaternion.set(
+          -boxBody.quaternion.x,
+          -boxBody.quaternion.y,
+         -boxBody.quaternion.z,
+          boxBody.quaternion.w
+        );
       }
       physicsWorld.fixedStep();
       requestAnimationFrame(Update);
-      //cannonDebugger.update();
+      cannonDebugger.update();
       renderer.render(scene, camera);
     }
     init();
