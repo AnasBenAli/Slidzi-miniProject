@@ -28,8 +28,8 @@ const camera = new THREE.PerspectiveCamera(
 const renderer = new THREE.WebGLRenderer({
   preserveDrawingBuffer: true,
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.replaceChild(renderer.domElement, document.body.childNodes[0]);
+renderer.setSize(window.innerWidth, window.innerHeight); //
+document.body.replaceChild(renderer.domElement, document.body.childNodes[0]); //
 //Create a DirectionalLight and turn on shadows for the light
 const light = new THREE.DirectionalLight(0xffffff, 1);
 //Create a sphere that cast shadows (but does not receive them)
@@ -37,7 +37,7 @@ const cannonDebugger = new CannonDebugger(scene, physicsWorld, {
   color: 0xff0000,
 });
 const axesHelper = new THREE.AxesHelper(8);
-scene.add(axesHelper);
+scene.add(axesHelper); //
 
 const loader = new GLTFLoader();
 var car;
@@ -76,13 +76,13 @@ document.addEventListener("keydown", (event) => {
     const keyName = event.key;
 
     const steering = Math.PI / 8;
-    if (keyName === "w") {
+    if (keyName === "w" || keyName === "z") {
       vehicle.setWheelForce(force, 0);
       vehicle.setWheelForce(force, 1);
     } else if (keyName === "s") {
       vehicle.setWheelForce(-force / 2, 0);
       vehicle.setWheelForce(-force / 2, 1);
-    } else if (keyName === "a") {
+    } else if (keyName === "a" || keyName === "q") {
       vehicle.setSteeringValue(steering, 0);
       vehicle.setSteeringValue(steering, 2);
     } else if (keyName === "d") {
@@ -94,13 +94,13 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keyup", (event) => {
   if (car) {
     const keyName = event.key;
-    if (keyName === "w") {
+    if (keyName === "w" || keyName === "z") {
       vehicle.setWheelForce(0, 0);
       vehicle.setWheelForce(0, 1);
     } else if (keyName === "s") {
       vehicle.setWheelForce(0, 0);
       vehicle.setWheelForce(0, 1);
-    } else if (keyName === "a") {
+    } else if (keyName === "a" || keyName === "q") {
       vehicle.setSteeringValue(0, 0);
       vehicle.setSteeringValue(0, 2);
     } else if (keyName === "d") {
@@ -175,9 +175,13 @@ function animateFuel() {
     fuelTrail.animate();
   });
 }
+var isInitialized = false;
 class Scene extends React.Component {
+ 
   CreateScene() {
     function init() {
+      debugger;
+      console.log("init");
       physicsWorld.gravity.set(0, -9.82, 0); // m/s²
       groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
       physicsWorld.addBody(groundBody);
@@ -209,7 +213,8 @@ class Scene extends React.Component {
         boxBody.quaternion.z,
         boxBody.quaternion.w
       );
-      generateFuelCluster(20);
+      generateFuelCluster(1);
+      isInitialized = true;
     }
     function Update() {
       animateFuel();
@@ -233,10 +238,11 @@ class Scene extends React.Component {
       }
       physicsWorld.fixedStep();
       requestAnimationFrame(Update);
-      //cannonDebugger.update();
       renderer.render(scene, camera);
     }
+    if (!isInitialized)
     init();
+    
     Update();
   }
 

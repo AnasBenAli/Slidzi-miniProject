@@ -1,13 +1,7 @@
 import React from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as CANNON from "cannon-es";
-import studio from "@theatre/studio";
-import * as core from "@theatre/core";
-import extension from "@theatre/r3f/dist/extension";
-import { Canvas } from "@react-three/fiber";
-import { SheetProvider } from "@theatre/r3f";
-import CannonDebugger from "cannon-es-debugger";
+import Scene from "./Scene";
 
 class Fuel extends React.Component {
   constructor(props) {
@@ -15,36 +9,35 @@ class Fuel extends React.Component {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshBasicMaterial({ color: 0xfaef29 });
     this.mesh = new THREE.Mesh(geometry, material);
+    this.boxCollider = new CANNON.Body({
+      mass: 0,
+      shape: new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5)),
+      isTrigger: true,
+    });
     this.state = {
       fuel: 100,
     };
+    this.props.physicsWorld.addBody(this.boxCollider);
+    this.boxCollider.addEventListener("collide", (e) => {
+     
+        if (e.body === this.props.carCollider) {
+          this.props.scene.remove(this.mesh);
+          this.props.physicsWorld.removeBody(this.boxCollider);
+        }
+     
+    });
   }
-  animate() {
+  Update() {
     try {
       if (this.mesh) {
+        this.boxCollider.position.copy(this.mesh.position);
         this.mesh.rotation.x += 0.01;
         this.mesh.rotation.y += 0.01;
-        this.props.renderer.render(this.props.scene, this.props.camera);
-        requestAnimationFrame(this.animate);
       }
     } catch (error) {}
   }
   render() {
-    return (
-      <group>
-        <mesh
-          position={this.props.position}
-          rotation={this.props.rotation}
-          scale={this.props.scale}
-          mesh={this.props.mesh}
-          castShadow
-          receiveShadow
-        >
-          <boxBufferGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color="red" />
-        </mesh>
-      </group>
-    );
+    return;
   }
 }
 export default Fuel;

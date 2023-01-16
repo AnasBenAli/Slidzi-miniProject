@@ -14,6 +14,7 @@ class CarBody extends React.Component {
     const mass = 1;
     const wheelsHeight = -0.8;
     const axis = new CANNON.Vec3(1, 0, 0);
+
     const wheelBody = new CANNON.Body({ mass, material: wheelMaterial });
     wheelBody.addShape(wheelShape);
     wheelBody.angularDamping = 0.1;
@@ -23,6 +24,7 @@ class CarBody extends React.Component {
       axis: axis,
       direction: dowmDir,
     });
+
     const wheelBody2 = new CANNON.Body({ mass, material: wheelMaterial });
     wheelBody2.addShape(wheelShape);
     wheelBody2.angularDamping = 0.1;
@@ -42,6 +44,7 @@ class CarBody extends React.Component {
       axis: axis,
       direction: dowmDir,
     });
+    
     const wheelBody4 = new CANNON.Body({ mass, material: wheelMaterial });
     wheelBody4.addShape(wheelShape);
     wheelBody4.angularDamping = 0.1;
