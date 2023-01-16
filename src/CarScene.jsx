@@ -4,21 +4,19 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as CANNON from "cannon-es";
 import studio from "@theatre/studio";
 import * as core from "@theatre/core";
-import extension from "@theatre/r3f/dist/extension";
 import { Canvas } from "@react-three/fiber";
-import { SheetProvider } from "@theatre/r3f";
 import CannonDebugger from "cannon-es-debugger";
 import CarBody from "./Car";
 import Fuel from "./Fuel";
 
-var score = 0;
-
 class CarScene extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      score: 0,
+    };
   }
-  generateFuelCluster = (amount) => {
+  GenerateFuelCluster = (amount) => {
     this.fuelTrails = [];
     for (var i = 0; i < amount; i++) {
       var fuelTrail = new Fuel({
@@ -38,6 +36,18 @@ class CarScene extends React.Component {
   animateFuel = () => {
     this.fuelTrails.forEach((fuelTrail) => {
       fuelTrail.Update();
+    });
+  };
+  setUpFuelTrailsEventListeners = () => {
+    this.fuelTrails.forEach((fuel) => {
+      fuel.boxCollider.addEventListener("collide", (e) => {
+        if (e.body === this.boxBody) {
+          this.scene.remove(fuel.mesh);
+          this.physicsWorld.removeBody(fuel.boxCollider);
+          this.setState({ score: this.state.score + fuel.state.fuelAmount });
+          console.log("Score: "+this.state.score);
+        }
+      });
     });
   };
   SetUpOnValueChange = () => {
@@ -113,6 +123,7 @@ class CarScene extends React.Component {
         }
       }
     });
+    this.setUpFuelTrailsEventListeners();
   };
   LoadModels = () => {
     this.loader.load("assets/Models/scene.gltf", (gltf) => {
@@ -123,7 +134,7 @@ class CarScene extends React.Component {
       this.car = gltf;
     });
   };
-  initializeVariables = () => {
+  InitializeVariables = () => {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -174,21 +185,23 @@ class CarScene extends React.Component {
     this.light = new THREE.DirectionalLight(0xffffff, 1);
   };
 
-  DocumentInit = () =>{
+  DocumentInit = () => {
     this.renderer.setSize(window.innerWidth, window.innerHeight); //
     document.body.replaceChild(
       this.renderer.domElement,
       document.body.childNodes[0]
     );
-  }
+  };
 
   initialize = () => {
     studio.initialize();
 
-    this.initializeVariables();
+    this.InitializeVariables();
     this.DocumentInit();
-    this.SetUpEventListeners();
     this.LoadModels();
+    this.GenerateFuelCluster(100);
+
+    this.SetUpEventListeners();
 
     this.physicsWorld.gravity.set(0, -9.82, 0); // m/s²
     this.groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
@@ -227,8 +240,6 @@ class CarScene extends React.Component {
     this.scene.add(this.axesHelper);
 
     this.isInitialized = true;
-
-    this.generateFuelCluster(10);
   };
 
   handleAnimations = () => {

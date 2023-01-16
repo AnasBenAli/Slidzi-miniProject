@@ -1,7 +1,6 @@
 import React from "react";
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
-import Scene from "./Scene";
 
 class Fuel extends React.Component {
   constructor(props) {
@@ -15,17 +14,9 @@ class Fuel extends React.Component {
       isTrigger: true,
     });
     this.state = {
-      fuel: 100,
+      fuelAmount: 100,
     };
     this.props.physicsWorld.addBody(this.boxCollider);
-    this.boxCollider.addEventListener("collide", (e) => {
-     
-        if (e.body === this.props.carCollider) {
-          this.props.scene.remove(this.mesh);
-          this.props.physicsWorld.removeBody(this.boxCollider);
-        }
-     
-    });
   }
   Update() {
     try {
