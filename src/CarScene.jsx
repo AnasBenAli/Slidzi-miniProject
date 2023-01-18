@@ -2,10 +2,9 @@ import React from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as CANNON from "cannon-es";
-import studio from "@theatre/studio";
-import * as core from "@theatre/core";
 import { Canvas } from "@react-three/fiber";
 import CannonDebugger from "cannon-es-debugger";
+import { GUI } from "dat.gui";
 import CarBody from "./Car";
 import Fuel from "./Fuel";
 
@@ -16,13 +15,11 @@ class CarScene extends React.Component {
       score: 0,
     };
   }
-  GenerateFuelCluster = (amount) => {
+  generateFuelCluster = (amount) => {
     this.fuelTrails = [];
     for (var i = 0; i < amount; i++) {
       var fuelTrail = new Fuel({
         physicsWorld: this.physicsWorld,
-        scene: this.scene,
-        carCollider: this.boxBody,
       });
       fuelTrail.mesh.position.set(
         Math.random() * 100 - 50,
@@ -40,51 +37,17 @@ class CarScene extends React.Component {
   };
   setUpFuelTrailsEventListeners = () => {
     this.fuelTrails.forEach((fuel) => {
-      fuel.boxCollider.addEventListener("collide", (e) => {
+      fuel.collider.addEventListener("collide", (e) => {
         if (e.body === this.boxBody) {
           this.scene.remove(fuel.mesh);
-          this.physicsWorld.removeBody(fuel.boxCollider);
-          this.setState({ score: this.state.score + fuel.state.fuelAmount });
-          console.log("Score: "+this.state.score);
+          this.physicsWorld.removeBody(fuel.collider);
+          this.setState({ score: this.state.score + fuel.fuelAmount });
+          console.log("Score: " + this.state.score);
         }
       });
     });
   };
-  SetUpOnValueChange = () => {
-    this.carTransform.onValuesChange((values) => {
-      if (this.car) {
-        this.car.scene.position.set(
-          values.position.x + values.colliderOffset.x,
-          values.position.y + values.colliderOffset.y,
-          values.position.z + values.colliderOffset.z
-        );
-        this.car.scene.rotation.set(
-          values.rotation.x,
-          values.rotation.y,
-          values.rotation.z
-        );
-        this.force = values.speed;
-      }
-    });
-    this.craneCam.onValuesChange((values) => {
-      this.camera.position.set(
-        values.position.x,
-        values.position.y,
-        values.position.z
-      );
-      this.camera.rotation.set(
-        values.rotation.x,
-        values.rotation.y,
-        values.rotation.z
-      );
-      this.camera.fov = values.fov;
-      this.camera.zoom = values.zoom;
-      this.camera.near = values.near;
-      this.camera.far = values.far;
-      this.camera.updateProjectionMatrix();
-    });
-  };
-  SetUpEventListeners = () => {
+  setUpEventListeners = () => {
     document.addEventListener("keydown", (event) => {
       if (this.car) {
         const keyName = event.key;
@@ -125,7 +88,7 @@ class CarScene extends React.Component {
     });
     this.setUpFuelTrailsEventListeners();
   };
-  LoadModels = () => {
+  loadModels = () => {
     this.loader.load("assets/Models/scene.gltf", (gltf) => {
       gltf.scene.scale.set(1, 1, 1);
       gltf.scene.castShadow = true;
@@ -134,7 +97,75 @@ class CarScene extends React.Component {
       this.car = gltf;
     });
   };
-  InitializeVariables = () => {
+  initializeGUI = () => {
+    this.carWireframe = false;
+    const gui = new GUI();
+    const carFolder = gui.addFolder("Car Properties");
+    const lightFolder = gui.addFolder("Directional Light Properties");
+    const fuelFolder = gui.addFolder("Fuel Properties");
+    const fuelFolderAnimation = fuelFolder.addFolder("Animation");
+
+    carFolder.add(this, "force", 0, 100).name("Speed");
+    carFolder
+      .add(this, "carWireframe")
+      .name("Wireframe")
+      .onChange(() => {
+        this.car.scene.traverse((child) => {
+          if (!child.isMesh) return;
+          child.material.wireframe = this.carWireframe;
+        });
+      });
+    this.FuelProperties = {
+      initialScale: 0.7,
+      frequency: 1,
+      amplitude: 0.05,
+      color: 0xfaef29,
+    };
+    fuelFolder
+      .addColor(this.FuelProperties, "color")
+      .name("Color")
+      .onChange(() => {
+        this.fuelTrails.forEach((fuel) => {
+          fuel.mesh.material.color.set(this.FuelProperties.color);
+          
+        });
+      });
+    fuelFolderAnimation
+      .add(this.FuelProperties, "initialScale", 0, 1)
+      .name("Initial Scale")
+      .onChange(() => {
+        this.fuelTrails.forEach((fuel) => {
+          fuel.initialScale = this.FuelProperties.initialScale;
+        });
+      });
+    fuelFolderAnimation
+      .add(this.FuelProperties, "frequency", 1, 25)
+      .name("Frequency")
+      .onChange(() => {
+        this.fuelTrails.forEach((fuel) => {
+          fuel.frequency = this.FuelProperties.frequency / 100;
+        });
+      });
+    fuelFolderAnimation
+      .add(this.FuelProperties, "amplitude", 0, 0.5)
+      .name("Amplitude")
+      .onChange(() => {
+        this.fuelTrails.forEach((fuel) => {
+          fuel.amplitude = this.FuelProperties.amplitude;
+        });
+      });
+    
+
+    //Manage properties of directional light
+    lightFolder.add(this.light, "visible").name("Enable");
+    lightFolder.add(this.light, "intensity", 0, 1).name("Intensity");
+    lightFolder.add(this.light.position, "x", -100, 100).name("Position X");
+    lightFolder.add(this.light.position, "y", -100, 100).name("Position Y");
+    lightFolder.add(this.light.position, "z", -100, 100).name("Position Z");
+    lightFolder.addColor(this.light, "color").name("Color");
+  };
+
+  initializeVariables = () => {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -142,29 +173,13 @@ class CarScene extends React.Component {
       0.1,
       1000
     );
-    this.project = core.getProject("My Project");
-    this.sheet = this.project.sheet("My Sheet");
+
     this.physicsWorld = new CANNON.World();
     this.renderer = new THREE.WebGLRenderer({
       preserveDrawingBuffer: true,
     });
     this.axesHelper = new THREE.AxesHelper(8);
     this.loader = new GLTFLoader();
-    this.craneCam = this.sheet.object("Crane Cam", {
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
-      fov: 75,
-      zoom: 1,
-      near: 0.1,
-      far: 90,
-    });
-    this.carTransform = this.sheet.object("Car Properties", {
-      speed: 10,
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
-      boxColliderScale: { x: 0, y: 0, z: 0 },
-      colliderOffset: { x: 0, y: 0, z: 0 },
-    });
     this.boxBody = new CANNON.Body({
       mass: 1,
       shape: new CANNON.Box(new CANNON.Vec3(2.5, 1.5, 6.2)),
@@ -185,7 +200,7 @@ class CarScene extends React.Component {
     this.light = new THREE.DirectionalLight(0xffffff, 1);
   };
 
-  DocumentInit = () => {
+  documentInit = () => {
     this.renderer.setSize(window.innerWidth, window.innerHeight); //
     document.body.replaceChild(
       this.renderer.domElement,
@@ -194,14 +209,13 @@ class CarScene extends React.Component {
   };
 
   initialize = () => {
-    studio.initialize();
+    this.initializeVariables();
+    this.documentInit();
+    this.loadModels();
+    this.initializeGUI();
+    this.generateFuelCluster(100);
 
-    this.InitializeVariables();
-    this.DocumentInit();
-    this.LoadModels();
-    this.GenerateFuelCluster(100);
-
-    this.SetUpEventListeners();
+    this.setUpEventListeners();
 
     this.physicsWorld.gravity.set(0, -9.82, 0); // m/s²
     this.groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
@@ -246,14 +260,14 @@ class CarScene extends React.Component {
     this.animateFuel();
   };
 
-  Update = () => {
-    requestAnimationFrame(this.Update);
+  update = () => {
+    requestAnimationFrame(this.update);
     this.handleAnimations();
     if (this.car) {
       const carPosition = {
-        x: this.boxBody.position.x + this.carTransform.value.colliderOffset.x,
-        y: this.boxBody.position.y + this.carTransform.value.colliderOffset.y,
-        z: this.boxBody.position.z + this.carTransform.value.colliderOffset.z,
+        x: this.boxBody.position.x,
+        y: this.boxBody.position.y,
+        z: this.boxBody.position.z,
       };
       this.car.scene.position.set(carPosition.x, carPosition.y, carPosition.z);
       this.car.scene.quaternion.set(
@@ -277,11 +291,11 @@ class CarScene extends React.Component {
 
   componentDidMount() {
     if (!this.isInitialized) this.initialize();
-    this.Update();
+    this.update();
   }
 
   render() {
-    return <Canvas></Canvas>;
+    return <Canvas />;
   }
 }
 export default CarScene;

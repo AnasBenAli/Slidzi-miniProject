@@ -1,34 +1,42 @@
-import React from "react";
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
 
-class Fuel extends React.Component {
+class Fuel{
   constructor(props) {
-    super(props);
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const geometry = new THREE.SphereGeometry();
     const material = new THREE.MeshBasicMaterial({ color: 0xfaef29 });
     this.mesh = new THREE.Mesh(geometry, material);
-    this.boxCollider = new CANNON.Body({
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+    this.collider = new CANNON.Body({
       mass: 0,
-      shape: new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5)),
+      shape: new CANNON.Sphere(1),
       isTrigger: true,
     });
-    this.state = {
-      fuelAmount: 100,
-    };
-    this.props.physicsWorld.addBody(this.boxCollider);
+    this.fuelAmount= 100;
+    props.physicsWorld.addBody(this.collider);
+    //set the mesh's rotation to a random value
+    this.mesh.rotation.x = Math.random() * 2 * Math.PI;
+    this.mesh.rotation.y = Math.random() * 2 * Math.PI;
+    this.mesh.rotation.z = Math.random() * 2 * Math.PI;
+    //set a random initial scale between 0.5 and 2
+    this.initialScale = Math.random() * 1.5 + 0.5;
+    this.frequency = 0.002;
+    this.amplitude = 0.05;
+
+    
   }
   Update() {
     try {
       if (this.mesh) {
-        this.boxCollider.position.copy(this.mesh.position);
-        this.mesh.rotation.x += 0.01;
-        this.mesh.rotation.y += 0.01;
+        this.collider.position.copy(this.mesh.position);
+        this.collider.scale = this.initialScale;
+        //ocilating the fuel's scale
+        this.mesh.scale.x = this.initialScale  + Math.sin(Date.now() * this.frequency) * this.amplitude;
+        this.mesh.scale.y = this.initialScale  + Math.sin(Date.now() * this.frequency) * this.amplitude;
+        this.mesh.scale.z = this.initialScale  + Math.sin(Date.now() * this.frequency) * this.amplitude;
       }
     } catch (error) {}
-  }
-  render() {
-    return;
   }
 }
 export default Fuel;
