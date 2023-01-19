@@ -2,11 +2,13 @@ import React from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as CANNON from "cannon-es";
-import { Canvas } from "@react-three/fiber";
 import CannonDebugger from "cannon-es-debugger";
 import { GUI } from "dat.gui";
 import CarBody from "./Car";
 import Fuel from "./Fuel";
+import { TTFLoader } from "three/examples/jsm/loaders/TTFLoader.js";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
 class CarScene extends React.Component {
   constructor(props) {
@@ -43,26 +45,42 @@ class CarScene extends React.Component {
           this.physicsWorld.removeBody(fuel.collider);
           this.setState({ score: this.state.score + fuel.fuelAmount });
           console.log("Score: " + this.state.score);
+            this.fuelTank += fuel.fuelAmount;
+            if(this.fuelTank > 100){
+              this.fuelTank = 100;
+            }
+            this.changeFuelText(
+              "assets/droid_sans_bold.typeface.json",
+              "Fuel: %"+this.fuelTank.toString().slice(0, 4),
+            );
+          
         }
       });
     });
   };
   setUpEventListeners = () => {
+    this.fuelTank = 100;
     document.addEventListener("keydown", (event) => {
-      if (this.car) {
+      if (this.car && this.fuelTank > 0) {
         const keyName = event.key;
-
         const steering = Math.PI / 8;
         if (keyName === "w" || keyName === "z") {
           this.vehicle.setWheelForce(this.force, 0);
           this.vehicle.setWheelForce(this.force, 1);
-        } else if (keyName === "s") {
+          if(this.fuelTank > 0){
+            this.fuelTank -= 0.2;
+          this.changeFuelText(
+            "assets/droid_sans_bold.typeface.json",
+            "Fuel: %"+this.fuelTank.toString().slice(0, 4),
+          );
+          }
+        } if (keyName === "s") {
           this.vehicle.setWheelForce(-this.force / 2, 0);
           this.vehicle.setWheelForce(-this.force / 2, 1);
-        } else if (keyName === "a" || keyName === "q") {
+        }  if (keyName === "a" || keyName === "q") {
           this.vehicle.setSteeringValue(steering, 0);
           this.vehicle.setSteeringValue(steering, 2);
-        } else if (keyName === "d") {
+        }  if (keyName === "d") {
           this.vehicle.setSteeringValue(-steering, 0);
           this.vehicle.setSteeringValue(-steering, 2);
         }
@@ -74,13 +92,13 @@ class CarScene extends React.Component {
         if (keyName === "w" || keyName === "z") {
           this.vehicle.setWheelForce(0, 0);
           this.vehicle.setWheelForce(0, 1);
-        } else if (keyName === "s") {
+        } if (keyName === "s") {
           this.vehicle.setWheelForce(0, 0);
           this.vehicle.setWheelForce(0, 1);
-        } else if (keyName === "a" || keyName === "q") {
+        } if (keyName === "a" || keyName === "q") {
           this.vehicle.setSteeringValue(0, 0);
           this.vehicle.setSteeringValue(0, 2);
-        } else if (keyName === "d") {
+        } if (keyName === "d") {
           this.vehicle.setSteeringValue(0, 0);
           this.vehicle.setSteeringValue(0, 2);
         }
@@ -98,6 +116,13 @@ class CarScene extends React.Component {
     });
   };
   initializeGUI = () => {
+    this.fontLoader = new FontLoader();
+    this.loadText(
+      "assets/droid_sans_bold.typeface.json",
+      "Fuel: %100",
+      [0, 0, 0]
+    );
+
     this.carWireframe = false;
     const gui = new GUI();
     const carFolder = gui.addFolder("Car Properties");
@@ -127,7 +152,6 @@ class CarScene extends React.Component {
       .onChange(() => {
         this.fuelTrails.forEach((fuel) => {
           fuel.mesh.material.color.set(this.FuelProperties.color);
-          
         });
       });
     fuelFolderAnimation
@@ -154,7 +178,6 @@ class CarScene extends React.Component {
           fuel.amplitude = this.FuelProperties.amplitude;
         });
       });
-    
 
     //Manage properties of directional light
     lightFolder.add(this.light, "visible").name("Enable");
@@ -176,7 +199,8 @@ class CarScene extends React.Component {
 
     this.physicsWorld = new CANNON.World();
     this.renderer = new THREE.WebGLRenderer({
-      preserveDrawingBuffer: true,
+      antialias: true,
+      alpha: true,
     });
     this.axesHelper = new THREE.AxesHelper(8);
     this.loader = new GLTFLoader();
@@ -206,6 +230,9 @@ class CarScene extends React.Component {
       this.renderer.domElement,
       document.body.childNodes[0]
     );
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
   };
 
   initialize = () => {
@@ -281,6 +308,11 @@ class CarScene extends React.Component {
         carPosition.y + 5,
         carPosition.z + 20
       );
+      this.fuelTextMesh.position.set(
+        carPosition.x - 3.25,
+        carPosition.y + 3,
+        carPosition.z
+      );
     }
     try {
       this.physicsWorld.fixedStep();
@@ -289,13 +321,42 @@ class CarScene extends React.Component {
     this.renderer.render(this.scene, this.camera);
   };
 
+  loadText(path, text, position) {
+    this.fontLoader.load(path, (droidFont) => {
+      const textGeometry = new TextGeometry(text, {
+        size: 1,
+        height: 1,
+        curveSegments: 1,
+        font: droidFont,
+      });
+      const textMaterial = new THREE.MeshNormalMaterial();
+      this.fuelTextMesh = new THREE.Mesh(textGeometry, textMaterial);
+      this.fuelTextMesh.position.set(position);
+      this.scene.add(this.fuelTextMesh);
+    });
+  }
+  changeFuelText(path, text) {
+    this.fontLoader.load(path, (droidFont) => {
+      const textGeometry = new TextGeometry(text, {
+        size: 1,
+        height: 1,
+        curveSegments: 1,
+        font: droidFont,
+      });
+      const textMaterial = new THREE.MeshNormalMaterial();
+      this.scene.remove(this.fuelTextMesh);
+      this.fuelTextMesh = new THREE.Mesh(textGeometry, textMaterial);
+      this.scene.add(this.fuelTextMesh);
+    });
+  }
+
   componentDidMount() {
     if (!this.isInitialized) this.initialize();
     this.update();
   }
 
   render() {
-    return <Canvas />;
+    return;
   }
 }
 export default CarScene;

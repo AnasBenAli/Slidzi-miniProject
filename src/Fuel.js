@@ -13,7 +13,7 @@ class Fuel{
       shape: new CANNON.Sphere(1),
       isTrigger: true,
     });
-    this.fuelAmount= 100;
+    this.fuelAmount= 2;
     props.physicsWorld.addBody(this.collider);
     //set the mesh's rotation to a random value
     this.mesh.rotation.x = Math.random() * 2 * Math.PI;
