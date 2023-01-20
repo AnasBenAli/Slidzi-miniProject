@@ -6,7 +6,6 @@ import CannonDebugger from "cannon-es-debugger";
 import { GUI } from "dat.gui";
 import CarBody from "./Car";
 import Fuel from "./Fuel";
-import { TTFLoader } from "three/examples/jsm/loaders/TTFLoader.js";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
@@ -45,15 +44,14 @@ class CarScene extends React.Component {
           this.physicsWorld.removeBody(fuel.collider);
           this.setState({ score: this.state.score + fuel.fuelAmount });
           console.log("Score: " + this.state.score);
-            this.fuelTank += fuel.fuelAmount;
-            if(this.fuelTank > 100){
-              this.fuelTank = 100;
-            }
-            this.changeFuelText(
-              "assets/droid_sans_bold.typeface.json",
-              "Fuel: %"+this.fuelTank.toString().slice(0, 4),
-            );
-          
+          this.fuelTank += fuel.fuelAmount;
+          if (this.fuelTank > 100) {
+            this.fuelTank = 100;
+          }
+          this.changeFuelText(
+            "assets/droid_sans_bold.typeface.json",
+            "Fuel: %" + this.fuelTank.toString().slice(0, 4)
+          );
         }
       });
     });
@@ -61,26 +59,38 @@ class CarScene extends React.Component {
   setUpEventListeners = () => {
     this.fuelTank = 100;
     document.addEventListener("keydown", (event) => {
-      if (this.car && this.fuelTank > 0) {
+      if (this.car) {
         const keyName = event.key;
         const steering = Math.PI / 8;
-        if (keyName === "w" || keyName === "z") {
+        if ((keyName === "w" || keyName === "z" ) && this.fuelTank > 0) {
           this.vehicle.setWheelForce(this.force, 0);
           this.vehicle.setWheelForce(this.force, 1);
-          if(this.fuelTank > 0){
-            this.fuelTank -= 0.2;
-          this.changeFuelText(
-            "assets/droid_sans_bold.typeface.json",
-            "Fuel: %"+this.fuelTank.toString().slice(0, 4),
-          );
+          if (this.fuelTank > 0) {
+            this.fuelTank -= 0.6;
+            if (this.fuelTank < 0) this.fuelTank = 0;
+            this.changeFuelText(
+              "assets/droid_sans_bold.typeface.json",
+              "Fuel: %" + this.fuelTank.toString().slice(0, 4)
+            );
           }
-        } if (keyName === "s") {
+        }
+        if (keyName === "s" && this.fuelTank > 0) {
           this.vehicle.setWheelForce(-this.force / 2, 0);
           this.vehicle.setWheelForce(-this.force / 2, 1);
-        }  if (keyName === "a" || keyName === "q") {
+          if (this.fuelTank > 0) {
+            this.fuelTank -= 0.6;
+            if (this.fuelTank < 0) this.fuelTank = 0;
+            this.changeFuelText(
+              "assets/droid_sans_bold.typeface.json",
+              "Fuel: %" + this.fuelTank.toString().slice(0, 4)
+            );
+          }
+        }
+        if (keyName === "a" || keyName === "q") {
           this.vehicle.setSteeringValue(steering, 0);
           this.vehicle.setSteeringValue(steering, 2);
-        }  if (keyName === "d") {
+        }
+        if (keyName === "d") {
           this.vehicle.setSteeringValue(-steering, 0);
           this.vehicle.setSteeringValue(-steering, 2);
         }
@@ -92,13 +102,16 @@ class CarScene extends React.Component {
         if (keyName === "w" || keyName === "z") {
           this.vehicle.setWheelForce(0, 0);
           this.vehicle.setWheelForce(0, 1);
-        } if (keyName === "s") {
+        }
+        if (keyName === "s") {
           this.vehicle.setWheelForce(0, 0);
           this.vehicle.setWheelForce(0, 1);
-        } if (keyName === "a" || keyName === "q") {
+        }
+        if (keyName === "a" || keyName === "q") {
           this.vehicle.setSteeringValue(0, 0);
           this.vehicle.setSteeringValue(0, 2);
-        } if (keyName === "d") {
+        }
+        if (keyName === "d") {
           this.vehicle.setSteeringValue(0, 0);
           this.vehicle.setSteeringValue(0, 2);
         }
@@ -129,6 +142,7 @@ class CarScene extends React.Component {
     const lightFolder = gui.addFolder("Directional Light Properties");
     const fuelFolder = gui.addFolder("Fuel Properties");
     const fuelFolderAnimation = fuelFolder.addFolder("Animation");
+    const MusicFolder = gui.addFolder("Music");
 
     carFolder.add(this, "force", 0, 100).name("Speed");
     carFolder
@@ -142,7 +156,7 @@ class CarScene extends React.Component {
       });
     this.FuelProperties = {
       initialScale: 0.7,
-      frequency: 1,
+      frequency: 1.5,
       amplitude: 0.05,
       color: 0xfaef29,
     };
@@ -186,6 +200,31 @@ class CarScene extends React.Component {
     lightFolder.add(this.light.position, "y", -100, 100).name("Position Y");
     lightFolder.add(this.light.position, "z", -100, 100).name("Position Z");
     lightFolder.addColor(this.light, "color").name("Color");
+
+    //Manage music
+    this.MusicParams = {
+      setVolume: 50,
+      isLooped: true,
+      isPaused: false,
+    };
+    MusicFolder.add(this.MusicParams, "setVolume", 0, 100)
+      .name("Volume")
+      .onChange(() => {
+        if (this.sound) this.sound.setVolume(this.MusicParams.setVolume / 100);
+      });
+    MusicFolder.add(this.MusicParams, "isPaused")
+      .name("Paused")
+      .onChange(() => {
+        if (this.sound) {
+          if (this.MusicParams.isPaused) this.sound.pause();
+          else this.sound.play();
+        }
+      });
+    MusicFolder.add(this.MusicParams, "isLooped")
+      .name("Is Looping")
+      .onChange(() => {
+        if (this.sound) this.sound.setLoop(this.MusicParams.isLooped);
+      });
   };
 
   initializeVariables = () => {
@@ -222,6 +261,11 @@ class CarScene extends React.Component {
     });
 
     this.light = new THREE.DirectionalLight(0xffffff, 1);
+
+    this.listener = new THREE.AudioListener();
+    this.camera.add(this.listener);
+    this.sound = new THREE.Audio(this.listener);
+    this.loadAndStartMusic();
   };
 
   documentInit = () => {
@@ -319,6 +363,17 @@ class CarScene extends React.Component {
     } catch (error) {}
     //this.cannonDebugger.update();
     this.renderer.render(this.scene, this.camera);
+  };
+
+  loadAndStartMusic = () => {
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load("assets/Initial D - Crazy On Emotion.ogg", (buffer) => {
+      this.sound.setBuffer(buffer);
+      this.sound.setLoop(true);
+      this.sound.setVolume(0.5);
+      this.sound.play();
+      console.log(this.sound);
+    });
   };
 
   loadText(path, text, position) {

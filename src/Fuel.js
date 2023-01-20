@@ -23,8 +23,6 @@ class Fuel{
     this.initialScale = Math.random() * 1.5 + 0.5;
     this.frequency = 0.002;
     this.amplitude = 0.05;
-
-    
   }
   Update() {
     try {
