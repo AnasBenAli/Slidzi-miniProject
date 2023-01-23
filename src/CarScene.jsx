@@ -8,6 +8,7 @@ import CarBody from "./Car";
 import Fuel from "./Fuel";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+import {ARButton} from "https://threejs.org/examples/jsm/webxr/ARButton.js";
 
 class CarScene extends React.Component {
   constructor(props) {
@@ -84,7 +85,7 @@ class CarScene extends React.Component {
               "assets/droid_sans_bold.typeface.json",
               "Fuel: %" + this.fuelTank.toString().slice(0, 4)
             );
-          }
+          } 
         }
         if (keyName === "a" || keyName === "q") {
           this.vehicle.setSteeringValue(steering, 0);
@@ -203,7 +204,7 @@ class CarScene extends React.Component {
 
     //Manage music
     this.MusicParams = {
-      setVolume: 50,
+      setVolume: 1,
       isLooped: true,
       isPaused: false,
     };
@@ -277,6 +278,13 @@ class CarScene extends React.Component {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
+
+    this.renderer.xr.enabled = true;
+    const button = ARButton.createButton(this.renderer, {
+      requiredFeatures: ["hit-test"],
+    });
+    console.log(button);
+    document.body.appendChild(button);
   };
 
   initialize = () => {
@@ -311,6 +319,12 @@ class CarScene extends React.Component {
       this.boxBody.quaternion.z,
       this.boxBody.quaternion.w
     );
+    this.CameraStand = new THREE.Object3D();
+    this.CameraStand.position.set(0, 0, 0);
+    this.CameraStand.add(this.camera);
+    this.group = new THREE.Group();
+    this.group.add(this.CameraStand);
+    this.scene.add(this.group);
 
     var lightShadow = this.light.shadow;
     lightShadow.mapSize.width = 512; // default
@@ -347,7 +361,7 @@ class CarScene extends React.Component {
         this.boxBody.quaternion.z,
         this.boxBody.quaternion.w
       );
-      this.camera.position.set(
+      this.CameraStand.position.set(
         carPosition.x,
         carPosition.y + 5,
         carPosition.z + 20
@@ -370,7 +384,7 @@ class CarScene extends React.Component {
     audioLoader.load("assets/Initial D - Crazy On Emotion.ogg", (buffer) => {
       this.sound.setBuffer(buffer);
       this.sound.setLoop(true);
-      this.sound.setVolume(0.5);
+      this.sound.setVolume(0.01);
       this.sound.play();
       console.log(this.sound);
     });
