@@ -1,9 +1,12 @@
 import './App.css';
 import UnityScene from './UnityScene';
+import { Routes, Route} from "react-router-dom";
 function App() {
   return (
     <div className="App">
-      <UnityScene/>
+      <Routes>
+        <Route path="/" element={<UnityScene />} />
+      </Routes>
     </div>
   );
 }
