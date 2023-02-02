@@ -1,5 +1,4 @@
 import './App.css';
-import CarScene from './CarScene';
 import UnityScene from './UnityScene';
 function App() {
   return (
